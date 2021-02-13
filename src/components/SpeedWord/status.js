@@ -5,8 +5,6 @@ class Status {
     this.statusQueue = [STOP, STOP]
     this.now = this.statusQueue[1]
     this.last = this.statusQueue[0]
-
-    console.log('Status run')
   }
   _refreshQueue(newStatus) {
     this.statusQueue.push(newStatus)

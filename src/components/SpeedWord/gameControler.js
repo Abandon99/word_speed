@@ -14,17 +14,12 @@ export default class GameControler extends Game {
       if(this.status.now === RUNNGIN)  { this.pause(); return }
     }
     start() {
-      console.log('GameControler start')      
-      if(this.status.now === RUNNGIN) {
-        console.log('已经在运行 不能重复开始')
-      } else {
+      if(this.status.now !== RUNNGIN) {
         this.game_run(this.status.now)
-        // return Promise.resolve({ lastStatus: this.statusQueue[0] })
       }
     }
     pause() {
       if(this.status.now === RUNNGIN) {
-        console.log('GameControler paused')
         this.game_pause()
       }
     }

@@ -1,15 +1,11 @@
 import { PAUSED, STOP, RUNNGIN } from './gameStatus'
 import status from './status'
 import timeTheWord from './timeTheWord'
-// console.log('import status in game.core', status)
-
-const START = Symbol('start')
-
-const wordsList = ['hello world', 'this is a game', 'component']
+import wordsList from './wordsList'
 
 
 export default class Game {
-  constructor(handleTargetChange, handleWordRunning) {
+  constructor(handleTargetChange, handleWordRunning, handleScoreChange, handleInputChange) {
     this.wordsList = null
     this._currentWordDelay = null
     this._currentWordDelayed = null
@@ -19,14 +15,19 @@ export default class Game {
     this.status = null
     this.handleTargetChange = handleTargetChange
     this.handleWordRunning  = handleWordRunning
+    this.handleScoreChange  = handleScoreChange
+    this.handleInputChange  = handleInputChange
+    this.isReStart = false
     this.init()
   }
 
   game_run(lastStatus = STOP) {
-    console.log('lastStatus in game_run => ', lastStatus)
     if(lastStatus === STOP) {
       this.status._refreshQueue(RUNNGIN)
       this.showWord()
+    } else { // PAUSED
+      this.status._refreshQueue(RUNNGIN)
+      this.showWord(lastStatus)
     }
   }
 
@@ -39,29 +40,42 @@ export default class Game {
   fn_timeOut(delayTime) {
     if(this.status.now === STOP) return
     this.wordTimeout = setTimeout(() => {
+      console.log('---another word---')
       this._clearInterval()
       this.showWord()
     }, delayTime)
   }
 
-  fn_interval(time) {
-    const runNums = time / 60
-    this._currentWordDelayed = 0
-    this.wordRunningInterval = setInterval(() => {
-      this._currentWordDelayed += 60
-      this.handleWordRunning(time)
-      if(this._currentWordDelayed >= time) this._clearInterval()
-    }, 60)
-
-    
+  fn_interval(time, lastStatus) {
+    if(lastStatus && lastStatus === PAUSED) {
+      this.isReStart = true
+      this.wordRunningInterval = setInterval(() => {
+        this._currentWordDelayed += 60
+        this.handleWordRunning(time, this.isReStart)
+        this.isReStart = false
+      }, 60)
+    } else {
+      this._currentWordDelayed = 0
+      this.wordRunningInterval = setInterval(() => {
+        this._currentWordDelayed += 60
+        this.handleWordRunning(time)
+      }, 60)
+    }
   }
 
-  showWord() {
-    const { word, time } = this.selectWord()
-    console.log(word, time)
-    this.fn_interval(time)
-    this.handleTargetChange(word)
-    this.fn_timeOut(time)
+  showWord(lastStatus) {
+    if(lastStatus === PAUSED) {
+      const remainderTime = this._currentWordDelay - this._currentWordDelayed
+      const { word, time } = this.selectWord()
+      this.fn_interval(this._currentWordDelay, lastStatus)
+      this.fn_timeOut(time)
+    } else {
+      const { word, time } = this.selectWord()
+      this._currentWordDelay = time
+      this.fn_interval(time)
+      this.handleTargetChange(word)
+      this.fn_timeOut(time)
+    }
   }
 
 
@@ -71,6 +85,12 @@ export default class Game {
     const word = this.wordsList[index]
     this.tartgetWord = word
     return { time: timeTheWord(word), word }
+  }
+
+  nextWord() {
+    this._clearTimeout()
+    this._clearInterval()
+    this.showWord()
   }
 
   init() {
